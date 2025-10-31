@@ -14,12 +14,13 @@ class RecipeCreator {
     handleSubmit(e) {
         e.preventDefault();
         
+        const prepTimeValue = document.getElementById('prepTime').value;
         const recipe = {
             id: Date.now(),
             name: document.getElementById('recipeName').value,
             ingredients: document.getElementById('ingredients').value.split('\n').filter(i => i.trim()),
             instructions: document.getElementById('instructions').value,
-            prepTime: document.getElementById('prepTime').value || 'N/A',
+            prepTime: prepTimeValue !== '' ? prepTimeValue : 'N/A',
             servings: document.getElementById('servings').value
         };
 
@@ -27,6 +28,16 @@ class RecipeCreator {
         this.saveRecipes();
         this.displayRecipes();
         e.target.reset();
+    }
+
+    // Helper function to escape HTML to prevent XSS attacks
+    escapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
     }
 
     displayRecipes() {
@@ -40,22 +51,22 @@ class RecipeCreator {
         container.innerHTML = this.recipes.map(recipe => `
             <div class="recipe-card">
                 <div class="recipe-header">
-                    <h3>${recipe.name}</h3>
+                    <h3>${this.escapeHtml(recipe.name)}</h3>
                     <button class="btn btn-delete" onclick="app.deleteRecipe(${recipe.id})">Delete</button>
                 </div>
                 <div class="recipe-meta">
-                    <span>⏱️ Prep Time: ${recipe.prepTime} min</span>
-                    <span>🍽️ Servings: ${recipe.servings}</span>
+                    <span>⏱️ Prep Time: ${this.escapeHtml(String(recipe.prepTime))} min</span>
+                    <span>🍽️ Servings: ${this.escapeHtml(String(recipe.servings))}</span>
                 </div>
                 <div class="recipe-section">
                     <h4>Ingredients:</h4>
                     <ul>
-                        ${recipe.ingredients.map(ing => `<li>${ing}</li>`).join('')}
+                        ${recipe.ingredients.map(ing => `<li>${this.escapeHtml(ing)}</li>`).join('')}
                     </ul>
                 </div>
                 <div class="recipe-section">
                     <h4>Instructions:</h4>
-                    <p>${recipe.instructions}</p>
+                    <p>${this.escapeHtml(recipe.instructions)}</p>
                 </div>
             </div>
         `).join('');
@@ -72,8 +83,13 @@ class RecipeCreator {
     }
 
     loadRecipes() {
-        const stored = localStorage.getItem('recipes');
-        return stored ? JSON.parse(stored) : [];
+        try {
+            const stored = localStorage.getItem('recipes');
+            return stored ? JSON.parse(stored) : [];
+        } catch (error) {
+            console.error('Error loading recipes from localStorage:', error);
+            return [];
+        }
     }
 }
 
