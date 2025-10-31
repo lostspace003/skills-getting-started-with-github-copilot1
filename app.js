@@ -8,6 +8,15 @@ class RecipeCreator {
     init() {
         const form = document.getElementById('recipeForm');
         form.addEventListener('submit', (e) => this.handleSubmit(e));
+        
+        // Event delegation for delete buttons
+        document.getElementById('recipesList').addEventListener('click', (e) => {
+            if (e.target.classList.contains('btn-delete')) {
+                const recipeId = parseInt(e.target.dataset.recipeId, 10);
+                this.deleteRecipe(recipeId);
+            }
+        });
+        
         this.displayRecipes();
     }
 
@@ -20,8 +29,8 @@ class RecipeCreator {
             name: document.getElementById('recipeName').value,
             ingredients: document.getElementById('ingredients').value.split('\n').filter(i => i.trim()),
             instructions: document.getElementById('instructions').value,
-            prepTime: prepTimeValue !== '' ? prepTimeValue : 'N/A',
-            servings: document.getElementById('servings').value
+            prepTime: prepTimeValue !== '' ? parseInt(prepTimeValue, 10) : null,
+            servings: parseInt(document.getElementById('servings').value, 10)
         };
 
         this.recipes.push(recipe);
@@ -48,28 +57,34 @@ class RecipeCreator {
             return;
         }
 
-        container.innerHTML = this.recipes.map(recipe => `
-            <div class="recipe-card">
-                <div class="recipe-header">
-                    <h3>${this.escapeHtml(recipe.name)}</h3>
-                    <button class="btn btn-delete" onclick="app.deleteRecipe(${recipe.id})">Delete</button>
+        container.innerHTML = this.recipes.map(recipe => {
+            const prepTimeDisplay = recipe.prepTime !== null 
+                ? `${this.escapeHtml(String(recipe.prepTime))} min` 
+                : 'N/A';
+            
+            return `
+                <div class="recipe-card">
+                    <div class="recipe-header">
+                        <h3>${this.escapeHtml(recipe.name)}</h3>
+                        <button class="btn btn-delete" data-recipe-id="${recipe.id}">Delete</button>
+                    </div>
+                    <div class="recipe-meta">
+                        <span>⏱️ Prep Time: ${prepTimeDisplay}</span>
+                        <span>🍽️ Servings: ${this.escapeHtml(String(recipe.servings))}</span>
+                    </div>
+                    <div class="recipe-section">
+                        <h4>Ingredients:</h4>
+                        <ul>
+                            ${recipe.ingredients.map(ing => `<li>${this.escapeHtml(ing)}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <div class="recipe-section">
+                        <h4>Instructions:</h4>
+                        <p>${this.escapeHtml(recipe.instructions)}</p>
+                    </div>
                 </div>
-                <div class="recipe-meta">
-                    <span>⏱️ Prep Time: ${this.escapeHtml(String(recipe.prepTime))} min</span>
-                    <span>🍽️ Servings: ${this.escapeHtml(String(recipe.servings))}</span>
-                </div>
-                <div class="recipe-section">
-                    <h4>Ingredients:</h4>
-                    <ul>
-                        ${recipe.ingredients.map(ing => `<li>${this.escapeHtml(ing)}</li>`).join('')}
-                    </ul>
-                </div>
-                <div class="recipe-section">
-                    <h4>Instructions:</h4>
-                    <p>${this.escapeHtml(recipe.instructions)}</p>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     deleteRecipe(id) {
